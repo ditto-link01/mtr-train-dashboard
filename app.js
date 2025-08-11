@@ -19,7 +19,6 @@ const els = {
   up: document.getElementById("up"),
   auto: document.getElementById("auto"),
   reload: document.getElementById("reload"),
-  spinner: document.getElementById("spinner"),
 };
 
 let timer = null;
@@ -34,7 +33,12 @@ function withinCommuteWindow(d = new Date()) {
 
 function parseHKTime(s) { return new Date(s.replace(" ", "T")); }
 
-function minutesDiff(a, b) { return Math.max(0, Math.round((b - a) / 60000)); }
+function minutesDiff(a, b) { 
+  // a, b are Date or timestamps; compute b - a in minutes (non-negative)
+  const ta = a instanceof Date ? a.getTime() : a;
+  const tb = b instanceof Date ? b.getTime() : b;
+  return Math.max(0, Math.round((tb - ta) / 60000)); 
+}
 
 function codeToName(code) { return NAME[code] || code; }
 
@@ -47,8 +51,6 @@ function setStatus(kind, text) {
   if (kind === "delay") els.statusDot.classList.add("dot-delay");
   if (kind === "alert") els.statusDot.classList.add("dot-alert");
 }
-
-function setLoading(on) { document.body.classList.toggle("loading", on); }
 
 function labelForIndex(i) {
   return i === 0 ? "Next service" : i === 1 ? "Following service" : "Later service";
@@ -105,6 +107,7 @@ function updateHeadwayWarning(trains) {
   els.intervalWarn.hidden = !gaps.some(g => g >= 11);
 }
 
+// --- data fetch ---
 async function fetchSchedule() {
   const url = `${API}?line=${LINE}&sta=${STA}&lang=${LANG}`;
   const res = await fetch(url, { mode: "cors" });
@@ -112,12 +115,13 @@ async function fetchSchedule() {
   return res.json();
 }
 
+// --- main load ---
 async function loadOnce() {
   try {
-    setLoading(true);
     setStatus("ok", "Loading…");
     const data = await fetchSchedule();
 
+    // Service alert / suspension (status: 0)
     if (data.status === 0) {
       const link = data.url ? ` <a href="${data.url}" target="_blank" rel="noopener">More info</a>` : "";
       setStatus("alert", `${data.message || "Service alert."}${link}`);
@@ -142,11 +146,10 @@ async function loadOnce() {
   } catch (e) {
     setStatus("alert", `Error: ${e.message}`);
     console.error(e);
-  } finally {
-    setLoading(false);
   }
 }
 
+// --- auto refresh loop ---
 function startAuto() {
   stopAuto();
   const tick = async () => {
@@ -158,8 +161,8 @@ function startAuto() {
     }
     await loadOnce();
   };
-  tick();
-  timer = setInterval(tick, 25_000);
+  tick();                               // first run
+  timer = setInterval(tick, 25_000);    // polite cadence to avoid 429s
 }
 function stopAuto() { if (timer) clearInterval(timer); timer = null; }
 
