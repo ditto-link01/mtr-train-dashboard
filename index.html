@@ -59,7 +59,7 @@
     <script>
         async function fetchSchedule() {
             try {
-                const response = await fetch("https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=DRL&sta=DIS");
+                const response = await fetch("https://mtr-api-proxy.vercel.app/api/mtr");
                 const data = await response.json();
 
                 const upTimes = data.data.UP.map(train => `<div class="train-time">• ${train.time} → ${train.dest}</div>`).join("");
