@@ -2,42 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>MTR Next Train – Disneyland Resort (DIS)</title>
+  <title>MTR Next Train – Disneyland Resort Station (DIS)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header>
-    <h1>Next Train <span class="muted">• Disneyland Resort Line → DIS</span></h1>
+    <div class="title">
+      <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+      <h1>Next Train <span class="muted">• Disneyland Resort Line → Disneyland Resort Station</span></h1>
+    </div>
     <div class="controls">
       <label class="switch" title="Refresh only during 17:30–18:30">
         <input type="checkbox" id="auto" checked />
         Auto‑refresh (17:30–18:30)
       </label>
-      <button id="reload">Reload now</button>
+
+      <label class="switch" title="Toggle dark theme">
+        <input type="checkbox" id="themeToggle" />
+        Dark theme
+      </label>
+
+      <button id="reload" class="btn">
+        <span class="spinner" id="spinner" aria-hidden="true"></span>
+        Reload now
+      </button>
     </div>
   </header>
 
   <main>
-    <section id="status" class="ok">Loading…</section>
+    <!-- Colour-coded overall status -->
+    <section id="status" class="status status--ok">Loading…</section>
 
-    <section class="columns">
+    <!-- Headway warning appears only if any interval ≥ 11 min during 17:30–18:30 -->
+    <section id="intervalWarn" class="warn" hidden>
+      Heads up: service headway is <b>≥ 11 minutes</b>. You may want to leave a bit earlier.
+    </section>
+
+    <!-- Only the UP list (DIS -> SUN) -->
+    <section class="columns one">
       <div class="card">
         <h2>UP (towards Sunny Bay)</h2>
         <ul id="up"></ul>
-      </div>
-      <div class="card">
-        <h2>DOWN (towards Disneyland Resort)</h2>
-        <ul id="down"></ul>
       </div>
     </section>
 
     <footer>
       <div>
-        Showing <b>line=DRL</b>, <b>station=DIS</b>, <b>lang=EN</b> • Refresh ~25s within window.<br/>
+        Fixed to <b>line=DRL</b>, <b>station=DIS</b>, <b>lang=EN</b> • Auto refresh ~25s within window.<br/>
         Data © MTR Corporation via DATA.GOV.HK.
-        (<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.7.pdf" target="_blank" rel="noopener">Spec</a> ·
-         <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary</a>)
+        (<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.7.pdf" target="_blank" rel="noopener">API Spec v1.7</a> ·
+         <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary v1.7</a>)
       </div>
     </footer>
   </main>
