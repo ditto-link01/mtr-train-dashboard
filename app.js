@@ -6,7 +6,7 @@ const API  = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php";
 
 // Commute window (local time)
 const COMMUTE_START = { h: 17, m: 30 };
-const COMMUTE_END   = { h: 18, m: 30 };
+const COMMUTE_END   = { h: 19, m: 0 };
 
 // Elements
 const els = {
