@@ -151,7 +151,7 @@ function startAuto() {
   const tick = async () => {
     if (!els.auto.checked) return;
     if (!withinCommuteWindow()) {
-      setStatus("ok", "Auto‑refresh paused (outside 17:30–18:30).");
+      setStatus("ok", "Auto‑refresh paused (outside 17:30–19:00). Click reload now to get the latest update.");
       els.intervalWarn.hidden = true;
       return;
     }
