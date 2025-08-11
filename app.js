@@ -1,4 +1,4 @@
-// --- Fixed configuration for Marco (DRL → DIS in EN) ---
+// --- Fixed configuration (DRL → DIS in EN) ---
 const LINE = "DRL";      // Disneyland Resort Line
 const STA  = "DIS";      // Disneyland Resort Station
 const LANG = "EN";       // English
@@ -8,7 +8,7 @@ const API  = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php";
 const COMMUTE_START = { h: 17, m: 30 };
 const COMMUTE_END   = { h: 18, m: 30 };
 
-// DLR names (UP/DOWN meaning per Data Dictionary: UP→SUN, DOWN→DIS)
+// Names for DLR
 const NAME = { DIS: "Disneyland Resort", SUN: "Sunny Bay" };
 
 // Elements
@@ -20,7 +20,6 @@ const els = {
   auto: document.getElementById("auto"),
   reload: document.getElementById("reload"),
   spinner: document.getElementById("spinner"),
-  themeToggle: document.getElementById("themeToggle"),
 };
 
 let timer = null;
@@ -33,14 +32,9 @@ function withinCommuteWindow(d = new Date()) {
   return mins >= start && mins <= end;
 }
 
-function parseHKTime(s) {
-  // API returns "YYYY-MM-DD HH:mm:ss" (HK local). Construct a local Date.
-  return new Date(s.replace(" ", "T"));
-}
+function parseHKTime(s) { return new Date(s.replace(" ", "T")); }
 
-function minutesDiff(a, b) { // b - a in minutes (non-negative)
-  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
-}
+function minutesDiff(a, b) { return Math.max(0, Math.round((b - a) / 60000)); }
 
 function codeToName(code) { return NAME[code] || code; }
 
@@ -48,15 +42,16 @@ function setStatus(kind, text) {
   // kind: 'ok' | 'delay' | 'alert'
   els.status.className = `status status--${kind}`;
   els.status.innerHTML = text;
-
   // header dot
   els.statusDot.classList.remove("dot-delay", "dot-alert");
   if (kind === "delay") els.statusDot.classList.add("dot-delay");
   if (kind === "alert") els.statusDot.classList.add("dot-alert");
 }
 
-function setLoading(on) {
-  document.body.classList.toggle("loading", on);
+function setLoading(on) { document.body.classList.toggle("loading", on); }
+
+function labelForIndex(i) {
+  return i === 0 ? "Next service" : i === 1 ? "Following service" : "Later service";
 }
 
 function renderUP(trains, now) {
@@ -69,27 +64,32 @@ function renderUP(trains, now) {
     return;
   }
 
-  trains.slice(0, 4).forEach(t => {
+  trains.slice(0, 4).forEach((t, i) => {
     const etaMin = minutesDiff(now, parseHKTime(t.time));
+    const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const dest = codeToName(t.dest);
+
     const li = document.createElement("li");
-    // No platform numbers (removed per request)
+    li.className = "train";
+    // Large ETA on the left, destination and label on the right
     li.innerHTML = `
-      <div><strong>${dest}</strong></div>
-      <div class="meta">ETA ${new Date(t.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} • ${etaMin} min${etaMin===1?"":"s"}</div>
+      <div class="etaBox">
+        <div class="mins">${etaMin}<small>min</small></div>
+        <div class="time">ETA ${timeStr}</div>
+      </div>
+      <div class="info">
+        <div class="dest">${dest}</div>
+        <div class="meta">${labelForIndex(i)}</div>
+      </div>
     `;
     els.up.appendChild(li);
   });
 }
 
-function computeIntervals(trains, now) {
-  // returns array of minutes between consecutive listed trains
+function computeIntervals(trains) {
   if (!trains || trains.length < 2) return [];
-  // sort by sequence if present, otherwise by time
-  const sorted = [...trains].sort((a, b) => {
-    if (a.seq && b.seq) return Number(a.seq) - Number(b.seq);
-    return parseHKTime(a.time) - parseHKTime(b.time);
-  });
+  const sorted = [...trains].sort((a, b) => (a.seq && b.seq) ? Number(a.seq) - Number(b.seq)
+                                                             : parseHKTime(a.time) - parseHKTime(b.time));
   const gaps = [];
   for (let i = 1; i < sorted.length; i++) {
     const prev = parseHKTime(sorted[i-1].time);
@@ -99,18 +99,12 @@ function computeIntervals(trains, now) {
   return gaps;
 }
 
-function updateHeadwayWarning(trains, now) {
-  // Show message during commute window if any interval ≥ 11 minutes
-  if (!withinCommuteWindow()) {
-    els.intervalWarn.hidden = true;
-    return;
-  }
-  const gaps = computeIntervals(trains, now);
-  const hasLargeGap = gaps.some(g => g >= 11);
-  els.intervalWarn.hidden = !hasLargeGap;
+function updateHeadwayWarning(trains) {
+  if (!withinCommuteWindow()) { els.intervalWarn.hidden = true; return; }
+  const gaps = computeIntervals(trains);
+  els.intervalWarn.hidden = !gaps.some(g => g >= 11);
 }
 
-// --- data fetch ---
 async function fetchSchedule() {
   const url = `${API}?line=${LINE}&sta=${STA}&lang=${LANG}`;
   const res = await fetch(url, { mode: "cors" });
@@ -118,15 +112,12 @@ async function fetchSchedule() {
   return res.json();
 }
 
-// --- main load ---
 async function loadOnce() {
   try {
     setLoading(true);
     setStatus("ok", "Loading…");
-
     const data = await fetchSchedule();
 
-    // Service alert / suspension cases (status: 0)
     if (data.status === 0) {
       const link = data.url ? ` <a href="${data.url}" target="_blank" rel="noopener">More info</a>` : "";
       setStatus("alert", `${data.message || "Service alert."}${link}`);
@@ -147,8 +138,7 @@ async function loadOnce() {
     );
 
     renderUP(section.UP, now);
-    updateHeadwayWarning(section.UP, now);
-
+    updateHeadwayWarning(section.UP);
   } catch (e) {
     setStatus("alert", `Error: ${e.message}`);
     console.error(e);
@@ -157,11 +147,10 @@ async function loadOnce() {
   }
 }
 
-// --- auto refresh loop ---
 function startAuto() {
   stopAuto();
   const tick = async () => {
-    if (!els.auto.checked) return; // manually disabled
+    if (!els.auto.checked) return;
     if (!withinCommuteWindow()) {
       setStatus("ok", "Auto‑refresh paused (outside 17:30–18:30).");
       els.intervalWarn.hidden = true;
@@ -169,30 +158,12 @@ function startAuto() {
     }
     await loadOnce();
   };
-  tick();                               // first run
-  timer = setInterval(tick, 25_000);    // polite cadence to avoid 429
+  tick();
+  timer = setInterval(tick, 25_000);
 }
 function stopAuto() { if (timer) clearInterval(timer); timer = null; }
 
-// --- theme toggle ---
-(function initTheme() {
-  const saved = localStorage.getItem("theme");
-  if (saved === "dark") {
-    document.body.classList.add("theme-dark");
-    els.themeToggle.checked = true;
-  }
-  els.themeToggle.addEventListener("change", () => {
-    if (els.themeToggle.checked) {
-      document.body.classList.add("theme-dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.body.classList.remove("theme-dark");
-      localStorage.removeItem("theme"); // fall back to system
-    }
-  });
-})();
-
-// --- wire up ---
+// Wire up
 els.auto.addEventListener("change", () => els.auto.checked ? startAuto() : stopAuto());
 els.reload.addEventListener("click", loadOnce);
 
