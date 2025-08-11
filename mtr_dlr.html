@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MTR Schedule - Disney Station</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f4f8;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #0052cc;
+        }
+        .schedule {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .direction {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .direction h2 {
+            margin-top: 0;
+            color: #0073e6;
+        }
+        .train-time {
+            margin: 5px 0;
+        }
+        .updated {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚆 Disney Station MTR Schedule</h1>
+    <div class="schedule">
+        <div class="direction" id="up">
+            <h2>To Sunny Bay</h2>
+            <div id="up-times"></div>
+        </div>
+        <div class="direction" id="down">
+            <h2>To Disneyland</h2>
+            <div id="down-times"></div>
+        </div>
+    </div>
+    <div class="updated" id="updated-time"></div>
+
+    <script>
+        async function fetchSchedule() {
+            try {
+                const response = await fetch("https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=DRL&sta=DIS");
+                const data = await response.json();
+
+                const upTimes = data.data.UP.map(train => `<div class="train-time">• ${train.time} → ${train.dest}</div>`).join("");
+                const downTimes = data.data.DOWN.map(train => `<div class="train-time">• ${train.time} → ${train.dest}</div>`).join("");
+
+                document.getElementById("up-times").innerHTML = upTimes;
+                document.getElementById("down-times").innerHTML = downTimes;
+
+                const now = new Date();
+                document.getElementById("updated-time").textContent = "Last updated: " + now.toLocaleTimeString();
+            } catch (error) {
+                document.getElementById("up-times").innerHTML = "<div class='train-time'>Error fetching data</div>";
+                document.getElementById("down-times").innerHTML = "<div class='train-time'>Error fetching data</div>";
+                document.getElementById("updated-time").textContent = "";
+            }
+        }
+
+        fetchSchedule();
+        setInterval(fetchSchedule, 60000); // Refresh every 60 seconds
+    </script>
+</body>
+</html>
