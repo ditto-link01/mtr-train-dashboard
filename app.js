@@ -1,7 +1,17 @@
+/**
+ * MTR Next Train – DRL @ DIS (English-only)
+ * References:
+ *  - API Spec v1.7: https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.7.pdf
+ *    - Resource URL: https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php
+ *    - Optional param: lang = EN | TC (we use EN)
+ *  - Data Dictionary v1.7: https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf
+ *    - dest = 3-letter station code; DRL UP → SUN (Sunny Bay), DOWN → DIS (Disneyland Resort)
+ */
+
 // --- Fixed configuration (DRL → DIS) ---
 const LINE = "DRL";   // Disneyland Resort Line
 const STA  = "DIS";   // Disneyland Resort Station
-const LANG = "EN";    // English only per requirement
+const LANG = "EN";    // English-only, per requirement
 const API  = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php";
 
 // Commute window (local time)
@@ -20,6 +30,13 @@ const els = {
 
 let timer = null;
 
+// Minimal name map (EN) for DRL destinations in UI only
+const STATION_NAME_EN = {
+  SUN: "Sunny Bay",
+  DIS: "Disneyland Resort",
+};
+const destLabel = (code) => STATION_NAME_EN[code] || code;
+
 // --- Helpers ---
 function withinCommuteWindow(d = new Date()) {
   const mins  = d.getHours() * 60 + d.getMinutes();
@@ -27,19 +44,12 @@ function withinCommuteWindow(d = new Date()) {
   const end   = COMMUTE_END.h   * 60 + COMMUTE_END.m;
   return mins >= start && mins <= end;
 }
-
-function parseHKTime(s) {
-  // API: "yyyy-MM-dd HH:mm:ss"
-  return new Date(s.replace(" ", "T"));
-}
-
+function parseHKTime(s) { return new Date(s.replace(" ", "T")); } // "yyyy-MM-dd HH:mm:ss"
 function minutesDiff(a, b) {
   const ta = a instanceof Date ? a.getTime() : a;
   const tb = b instanceof Date ? b.getTime() : b;
-  // Use floor to avoid 0↔1 minute bouncing
-  return Math.max(0, Math.floor((tb - ta) / 60000));
+  return Math.max(0, Math.floor((tb - ta) / 60000)); // steadier UX
 }
-
 function setStatus(kind, html) {
   els.status.className = `status status--${kind}`;
   els.status.innerHTML = html;
@@ -47,7 +57,6 @@ function setStatus(kind, html) {
   if (kind === "delay") els.statusDot.classList.add("dot-delay");
   if (kind === "alert") els.statusDot.classList.add("dot-alert");
 }
-
 function computeIntervals(trains) {
   if (!trains || trains.length < 2) return [];
   const sorted = [...trains].sort((a, b) =>
@@ -62,14 +71,13 @@ function computeIntervals(trains) {
   }
   return gaps;
 }
-
 function updateHeadwayWarning(trains) {
   if (!withinCommuteWindow()) { els.intervalWarn.hidden = true; return; }
   const gaps = computeIntervals(trains);
   els.intervalWarn.hidden = !gaps.some(g => g >= 11);
 }
 
-// RENDER: no “Next/Following/Later” tags — just ETA/time/dest/platform
+// --- Render UP list (no platform/seq; show "Sunny Bay") ---
 function renderUP(trains, now) {
   els.up.innerHTML = "";
   if (!trains || trains.length === 0) {
@@ -79,14 +87,9 @@ function renderUP(trains, now) {
     els.up.appendChild(li);
     return;
   }
-
   trains.slice(0, 4).forEach((t) => {
     const etaMin  = minutesDiff(now, parseHKTime(t.time));
-    const timeStr = new Date(t.time).toLocaleTimeString([], {
-      hour: '2-digit', minute: '2-digit'
-    });
-
-    // Show original API fields only: dest (station code), plat, seq
+    const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const li = document.createElement("li");
     li.className = "train";
     li.innerHTML = `
@@ -95,18 +98,16 @@ function renderUP(trains, now) {
         <div class="time">ETA ${timeStr}</div>
       </div>
       <div class="info">
-        <div class="dest">${t.dest}</div>
-        <div class="meta">Platform ${t.plat}${t.seq ? ` • Seq ${t.seq}` : ""}</div>
+        <div class="dest">${destLabel(t.dest)}</div>
       </div>
     `;
     els.up.appendChild(li);
   });
 }
 
-// --- API ---
+// --- API (Spec v1.7) ---
 async function fetchSchedule() {
-  // Correctly pass lang=EN (MTR API supports EN/TC; EN default) [1](https://twdc-my.sharepoint.com/personal/marco_p_yu_disney_com/_layouts/15/download.aspx?UniqueId=54ebf479-de0b-4693-bb52-dff0687b9946&Translate=false&tempauth=v1.eyJzaXRlaWQiOiJmYzRiMGJhNC05ZTkwLTRjZjAtOTU4NC01Yzc5ZDgwNTI2ZDkiLCJhcHBfZGlzcGxheW5hbWUiOiJPZmZpY2UgMzY1IFNlYXJjaCBTZXJ2aWNlIiwiYXBwaWQiOiI2NmE4ODc1Ny0yNThjLTRjNzItODkzYy0zZThiZWQ0ZDY4OTkiLCJhdWQiOiIwMDAwMDAwMy0wMDAwLTBmZjEtY2UwMC0wMDAwMDAwMDAwMDAvdHdkYy1teS5zaGFyZXBvaW50LmNvbUA1NmI3MzFhOC1hMmFjLTRjMzItYmY2Yi02MTY4MTBlOTEzYzYiLCJleHAiOiIxNzU0OTMxNjgwIn0.CkAKDGVudHJhX2NsYWltcxIwQ0xDUDZNUUdFQUFhRmtKVFNtRlRlRGxLVEd0TFVYSkxkMUJSVlUxTlFVRXFBQT09CjIKCmFjdG9yYXBwaWQSJDAwMDAwMDAzLTAwMDAtMDAwMC1jMDAwLTAwMDAwMDAwMDAwMAoKCgRzbmlkEgI2NBILCLiszoXLvqw-EAUaDjIwLjE5MC4xNTEuMTAwKixqdC9zeEV6N1J0aVJNdFNidlU5MFVCN2htREhuL2swYlh0TGlGdWx3OWRVPTCVATgBQhChusCj04AAkMXYuXaAX4rUShBoYXNoZWRwcm9vZnRva2VuaiQwMDdiYzc5OS00ZDg3LTFjMjgtNTQ4NC02NWY0NTRmZWEzYTlyKTBoLmZ8bWVtYmVyc2hpcHwxMDAzMjAwMmYzMDdmYzVjQGxpdmUuY29tegEyggESCagxt1asojJMEb9rYWgQ6RPGkgEFTWFyY2-aAQJZdaIBFW1hcmNvLnAueXVAZGlzbmV5LmNvbaoBEDEwMDMyMDAyRjMwN0ZDNUOyAU1hbGxmaWxlcy53cml0ZSBteWZpbGVzLndyaXRlIG15ZmlsZXMucmVhZCBjb250YWluZXIuc2VsZWN0ZWQgYWxscHJvZmlsZXMucmVhZMgBAQ.EeSKzIRJxXoHxaiFAt4GSkizLicKgQCHo_9pu6Y8f5c&ApiVersion=2.0&web=1)
-  const url = `${API}?line=${LINE}&sta=${STA}&lang=${LANG}`;
+  const url = `${API}?line=${LINE}&sta=${STA}&lang=${LANG}`; // 'lang' per Spec v1.7
   const res = await fetch(url, { mode: "cors" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -118,7 +119,7 @@ async function loadOnce() {
     setStatus("ok", "Loading…");
     const data = await fetchSchedule();
 
-    // Service alert or special arrangement (status === 0)
+    // Special arrangements / alert
     if (data.status === 0) {
       const link = data.url ? ` <a href="${data.url}" target="_blank" rel="noopener">More info</a>` : "";
       setStatus("alert", `${data.message ?? "Service alert."}${link}`);
@@ -146,26 +147,22 @@ async function loadOnce() {
   }
 }
 
+// --- Auto-refresh (≈25s, within commute window) ---
 function startAuto() {
   stopAuto();
   const tick = async () => {
     if (!els.auto.checked) return;
     if (!withinCommuteWindow()) {
-      setStatus("ok", "Auto‑refresh paused (outside 17:30–19:00). Click reload now to get the latest update.");
+      setStatus("ok", "Auto‑refresh paused (outside 17:30–19:00).");
       els.intervalWarn.hidden = true;
       return;
     }
     await loadOnce();
   };
   tick();
-  // ~25s cadence keeps us well below rate limits; the spec mentions 429 if too frequent. [1](https://twdc-my.sharepoint.com/personal/marco_p_yu_disney_com/_layouts/15/download.aspx?UniqueId=54ebf479-de0b-4693-bb52-dff0687b9946&Translate=false&tempauth=v1.eyJzaXRlaWQiOiJmYzRiMGJhNC05ZTkwLTRjZjAtOTU4NC01Yzc5ZDgwNTI2ZDkiLCJhcHBfZGlzcGxheW5hbWUiOiJPZmZpY2UgMzY1IFNlYXJjaCBTZXJ2aWNlIiwiYXBwaWQiOiI2NmE4ODc1Ny0yNThjLTRjNzItODkzYy0zZThiZWQ0ZDY4OTkiLCJhdWQiOiIwMDAwMDAwMy0wMDAwLTBmZjEtY2UwMC0wMDAwMDAwMDAwMDAvdHdkYy1teS5zaGFyZXBvaW50LmNvbUA1NmI3MzFhOC1hMmFjLTRjMzItYmY2Yi02MTY4MTBlOTEzYzYiLCJleHAiOiIxNzU0OTMxNjgwIn0.CkAKDGVudHJhX2NsYWltcxIwQ0xDUDZNUUdFQUFhRmtKVFNtRlRlRGxLVEd0TFVYSkxkMUJSVlUxTlFVRXFBQT09CjIKCmFjdG9yYXBwaWQSJDAwMDAwMDAzLTAwMDAtMDAwMC1jMDAwLTAwMDAwMDAwMDAwMAoKCgRzbmlkEgI2NBILCLiszoXLvqw-EAUaDjIwLjE5MC4xNTEuMTAwKixqdC9zeEV6N1J0aVJNdFNidlU5MFVCN2htREhuL2swYlh0TGlGdWx3OWRVPTCVATgBQhChusCj04AAkMXYuXaAX4rUShBoYXNoZWRwcm9vZnRva2VuaiQwMDdiYzc5OS00ZDg3LTFjMjgtNTQ4NC02NWY0NTRmZWEzYTlyKTBoLmZ8bWVtYmVyc2hpcHwxMDAzMjAwMmYzMDdmYzVjQGxpdmUuY29tegEyggESCagxt1asojJMEb9rYWgQ6RPGkgEFTWFyY2-aAQJZdaIBFW1hcmNvLnAueXVAZGlzbmV5LmNvbaoBEDEwMDMyMDAyRjMwN0ZDNUOyAU1hbGxmaWxlcy53cml0ZSBteWZpbGVzLndyaXRlIG15ZmlsZXMucmVhZCBjb250YWluZXIuc2VsZWN0ZWQgYWxscHJvZmlsZXMucmVhZMgBAQ.EeSKzIRJxXoHxaiFAt4GSkizLicKgQCHo_9pu6Y8f5c&ApiVersion=2.0&web=1)
   timer = setInterval(tick, 25_000);
 }
-
-function stopAuto() {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
+function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
 
 els.auto.addEventListener("change", () => els.auto.checked ? startAuto() : stopAuto());
 els.reload.addEventListener("click", loadOnce);
