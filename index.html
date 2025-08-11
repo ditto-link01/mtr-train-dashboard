@@ -1,86 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>MTR Schedule - Disney Station</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f0f4f8;
-            color: #333;
-            max-width: 600px;
-            margin: auto;
-        }
-        h1 {
-            text-align: center;
-            color: #0052cc;
-        }
-        .schedule {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .direction {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .direction h2 {
-            margin-top: 0;
-            color: #0073e6;
-        }
-        .train-time {
-            margin: 5px 0;
-        }
-        .updated {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 0.9em;
-            color: #666;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>MTR Next Train – Disneyland Resort (DIS)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-    <h1>🚆 Disney Station MTR Schedule</h1>
-    <div class="schedule">
-        <div class="direction" id="up">
-            <h2>To Sunny Bay</h2>
-            <div id="up-times"></div>
-        </div>
-        <div class="direction" id="down">
-            <h2>To Disneyland</h2>
-            <div id="down-times"></div>
-        </div>
+  <header>
+    <h1>Next Train <span class="muted">• Disneyland Resort Line → DIS</span></h1>
+    <div class="controls">
+      <label class="switch" title="Refresh only during 17:30–18:30">
+        <input type="checkbox" id="auto" checked />
+        Auto‑refresh (17:30–18:30)
+      </label>
+      <button id="reload">Reload now</button>
     </div>
-    <div class="updated" id="updated-time"></div>
+  </header>
 
-    <script>
-        async function fetchSchedule() {
-            try {
-                const response = await fetch("https://mtr-api-proxy.vercel.app/api/mtr");
-                const data = await response.json();
+  <main>
+    <section id="status" class="ok">Loading…</section>
 
-                const upTimes = data.data.UP.map(train => `<div class="train-time">• ${train.time} → ${train.dest}</div>`).join("");
-                const downTimes = data.data.DOWN.map(train => `<div class="train-time">• ${train.time} → ${train.dest}</div>`).join("");
+    <section class="columns">
+      <div class="card">
+        <h2>UP (towards Sunny Bay)</h2>
+        <ul id="up"></ul>
+      </div>
+      <div class="card">
+        <h2>DOWN (towards Disneyland Resort)</h2>
+        <ul id="down"></ul>
+      </div>
+    </section>
 
-                document.getElementById("up-times").innerHTML = upTimes;
-                document.getElementById("down-times").innerHTML = downTimes;
+    <footer>
+      <div>
+        Showing <b>line=DRL</b>, <b>station=DIS</b>, <b>lang=EN</b> • Refresh ~25s within window.<br/>
+        Data © MTR Corporation via DATA.GOV.HK.
+        (<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.7.pdf" target="_blank" rel="noopener">Spec</a> ·
+         <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary</a>)
+      </div>
+    </footer>
+  </main>
 
-                const now = new Date();
-                document.getElementById("updated-time").textContent = "Last updated: " + now.toLocaleTimeString();
-            } catch (error) {
-                document.getElementById("up-times").innerHTML = "<div class='train-time'>Error fetching data</div>";
-                document.getElementById("down-times").innerHTML = "<div class='train-time'>Error fetching data</div>";
-                document.getElementById("updated-time").textContent = "";
-            }
-        }
-
-        fetchSchedule();
-        setInterval(fetchSchedule, 60000); // Refresh every 60 seconds
-    </script>
+  <script src="./app.js"></script>
 </body>
 </html>
