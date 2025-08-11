@@ -114,3 +114,48 @@ footer { margin-top:1rem; font-size:.85rem; color:var(--muted); }
   li.train { grid-template-columns: 92px 1fr; }
   .mins { font-size:48px; }
 }
+
+/* ===== UPDATED: List layout (Large ETA) ===== */
+ul { list-style:none; padding:0; margin:0; display:grid; gap:.9rem; }
+
+/* Each item: bigger, more padding, wider ETA column */
+li.train {
+  display:grid;
+  grid-template-columns: clamp(120px, 28vw, 180px) 1fr; /* wider & responsive ETA column */
+  align-items:center;
+  gap:1rem;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding: 1rem 1.1rem; /* more L/R padding */
+  background: var(--bg);
+}
+
+/* ETA box: add internal L/R padding and taller minimum height */
+.etaBox {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:#fff; color:#111; border-radius:12px; border:1px solid var(--line);
+  padding: .75rem 1rem;            /* ↑ more left/right padding inside the box */
+  min-height: 100px;               /* a bit taller for comfort */
+}
+@media (prefers-color-scheme: dark) { .etaBox { background:#111; color:#fff; } }
+
+/* Large, responsive numbers */
+.mins {
+  font-size: clamp(42px, 12vw, 60px);
+  line-height:.9; font-weight:800; letter-spacing:-1px;
+}
+.mins small { font-size: clamp(16px, 3.5vw, 22px); font-weight:700; margin-left:2px; opacity:.85; }
+.time { font-size: clamp(12px, 3.2vw, 15px); color:var(--muted); margin-top:.25rem; }
+
+/* Mobile tuning: even wider ETA box and more padding on narrow viewports */
+@media (max-width: 640px) {
+  li.train {
+    grid-template-columns: clamp(136px, 42vw, 200px) 1fr; /* wider on small screens */
+    padding: 1rem 1.2rem;  /* extra L/R padding on the row */
+    gap: 1.1rem;
+  }
+  .etaBox {
+    padding: .85rem 1.1rem; /* extra L/R padding inside the ETA box */
+    min-height: 104px;
+  }
+}
