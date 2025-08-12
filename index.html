@@ -1,54 +1,59 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>MTR Next Train – Disneyland Resort (DIS)</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <header>
-    <div class="title">
-      <span id="statusDot" class="status-dot" aria-hidden="true"></span>
-      <h1>
-        <span class="muted">Next Train •</span>
-        Disneyland Resort Line — Disneyland Resort Station
-      </h1>
-    </div>
-    <div class="controls">
-      <label class="switch">
-        <input id="auto" type="checkbox" checked />
-        Auto‑refresh (17:30–19:00)
-      </label>
-      <button id="reload" class="btn">Reload now</button>
-    </div>
-  </header>
+<html lang="en-HK">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MTR Next Train — DIS & SUN</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0072C6" />
+  </head>
+  <body>
+    <header>
+      <div class="title">
+        <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+        <h1>MTR Next Train</h1>
+        <span class="muted">Disneyland Resort • Tung Chung Line</span>
+      </div>
+      <div class="controls">
+        <label class="switch">
+          <input id="auto" type="checkbox" checked />
+          <span>Auto‑refresh (17:30–19:00)</span>
+        </label>
+        <button id="reload" class="btn" type="button">Reload now</button>
+      </div>
+    </header>
 
-  <main>
-    <section class="card">
+    <main>
+      <!-- Status banner (global) -->
       <div id="status" class="status status--ok">Loading…</div>
 
+      <!-- Headway warning (DRL only, ≥ 11 min gaps) -->
       <div id="intervalWarn" class="warn" hidden>
-        Heads up: wait time is <strong>≥ 11 minutes</strong>. You may want to leave a bit earlier.
+        Heads up: wait time is ≥ 11 minutes. You may want to leave a bit earlier.
       </div>
 
-      <!-- Neutral heading to avoid adding translations to data -->
-      <h2>To Sunny Bay</h2>
+      <div class="columns one">
+        <!-- Card 1: DRL @ DIS (to Sunny Bay) -->
+        <section class="card" aria-labelledby="drlTitle">
+          <h2 id="drlTitle">Disneyland Resort Line — Disneyland Resort Station</h2>
+          <p class="meta">To Sunny Bay</p>
+          <ul id="up"></ul>
+        </section>
 
-      <ul id="up"></ul>
+        <!-- Card 2: TCL @ SUN (to Hong Kong) -->
+        <section class="card" aria-labelledby="tclTitle">
+          <h2 id="tclTitle">Tung Chung Line — Sunny Bay → Hong Kong</h2>
+          <ul id="tclSun"></ul>
+          <div id="tclSunMeta" class="meta" style="margin-top:.5rem;"></div>
+        </section>
+      </div>
 
       <footer>
-        Fixed to <code>line=DRL</code>, <code>station=DIS</code>, <code>lang=EN</code> • Auto refresh ~25s within window.<br />
+        Fixed to line=DRL, station=DIS, lang=EN • Auto‑refresh ~25s within window.<br/>
         Data © MTR Corporation via DATA.GOV.HK.
-        (<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.6.pdf" target="_blank" rel="noopener">API Spec</a> ·
-         <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary</a>)
-      </footer>
-    </section>
-  </main>
-
-  <script src="./app.js"></script>
-</body>
+        <a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.6.pdf" target="_blank" rel="noopener">API Spec</a> ·
+        <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary</avaScript to view real‑time train arrivals.</noscript>
+    <script defer src="app.js"></script>
+  </body>
 </html>
