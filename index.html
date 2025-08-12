@@ -1,54 +1,64 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>MTR Next Train – Disneyland Resort (DIS)</title>
-<link rel="stylesheet" href="./styles.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Real-time next train information for the MTR Disneyland Resort Line – DIS station. Auto-refreshes during peak hours." />
+  <title>MTR Next Train – Disneyland Resort (DIS)</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="./styles.css" />
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-<header>
-<div class="title">
-<span id="statusDot" class="status-dot" aria-hidden="true"></span>
-<h1>
-<span class="muted">Next Train •</span>
-Disneyland Resort Line — Disneyland Resort Station
-</h1>
-</div>
-<div class="controls">
-<label class="switch">
-<input id="auto" type="checkbox" checked />
-Auto‑refresh (17:30–19:00)
-</label>
-<button id="reload" class="btn">Reload now</button>
-</div>
-</header>
+  <header>
+    <div class="title">
+      <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+      <h1>
+        <span class="muted">Next Train •</span>
+        Disneyland Resort Line — Disneyland Resort Station
+      </h1>
+    </div>
+    <div class="controls">
+      <label class="switch">
+        <input id="auto" type="checkbox" checked />
+        Auto‑refresh (17:30–19:00)
+      </label>
+      <button id="reload" class="btn" aria-label="Reload train times immediately">Reload now</button>
+    </div>
+  </header>
 
-<main>
-<section class="card">
-<div id="status" class="status status--ok">Loading…</div>
+  <main>
+    <section class="card">
+      <div id="status" class="status status--ok">Loading…</div>
 
-<div id="intervalWarn" class="warn" hidden>
-Heads up: wait time is <strong>≥ 11 minutes</strong>. You may want to leave a bit earlier.
-</div>
+      <div id="intervalWarn" class="warn" hidden>
+        Heads up: wait time is <strong>≥ 11 minutes</strong>. You may want to leave a bit earlier.
+      </div>
 
-<!-- Neutral heading to avoid adding translations to data -->
-<h2>To Sunny Bay</h2>
+      <!-- Neutral heading to avoid adding translations to data -->
+      <h2>To Sunny Bay</h2>
+      <ul id="up"></ul>
 
-<ul id="up"></ul>
+      <footer>
+        <div>
+          <span>Fixed to <code>line=DRL</code>, <code>station=DIS</code>, <code>lang=EN</code></span>
+          • Auto refresh ~25s within window.
+        </div>
+        <div>
+          Data © MTR Corporation via DATA.GOV.HK.<br />
+          (<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.6.pdf" target="_blank" rel="noopener noreferrer">API Spec</a> ·
+          <a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener noreferrer">Data Dictionary</a>)
+        </div>
+      </footer>
+    </section>
+  </main>
 
-<footer>
-Fixed to <code>line=DRL</code>, <code>station=DIS</code>, <code>lang=EN</code> • Auto refresh ~25s within window.<br />
-Data © MTR Corporation via DATA.GOV.HK.
-(<a href="https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.6.pdf" target="_blank" rel="noopener">API Spec</a> ·
-<a href="https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf" target="_blank" rel="noopener">Data Dictionary</a>)
-</footer>
-</section>
-</main>
+  <noscript>
+    <div class="warn">
+      This app requires JavaScript to display live train information.
+    </div>
+  </noscript>
 
-<script src="./app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
