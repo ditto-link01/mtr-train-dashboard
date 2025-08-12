@@ -166,4 +166,6 @@ function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
 
 els.auto.addEventListener("change", () => els.auto.checked ? startAuto() : stopAuto());
 els.reload.addEventListener("click", loadOnce);
+// New behavior: fetch once on first load even if outside commute window
+if (!withinCommuteWindow()) { loadOnce(); }
 startAuto();
