@@ -61,11 +61,21 @@ function renderTrains(trains) {
   }
 }
 
+// Enhanced fetchSchedule: logs raw response and gives better error if malformed
 async function fetchSchedule() {
   const r = await fetch(API_URL);
-  if (!r.ok) throw new Error(`${texts.errorPrefix} ${r.status}`);
-  const json = await r.json();
-  if (!json.data?.DRL?.DIS?.UP) throw new Error(`${texts.errorPrefix} Malformed data`);
+  const rawText = await r.text();
+  // Log the raw response for diagnostics
+  console.log("Raw API response:", rawText);
+  let json;
+  try {
+    json = JSON.parse(rawText);
+  } catch (err) {
+    throw new Error(`${texts.errorPrefix} Malformed data (not JSON): ${rawText.slice(0, 200)}`);
+  }
+  if (!json.data?.DRL?.DIS?.UP) {
+    throw new Error(`${texts.errorPrefix} Malformed data (missing DRL.DIS.UP): ${JSON.stringify(json.data)}`);
+  }
   return json.data.DRL.DIS.UP;
 }
 
