@@ -1,169 +1,143 @@
-/**
- * MTR Next Train – DRL @ DIS (English-only)
- * References:
- *  - API Spec v1.7: https://opendata.mtr.com.hk/doc/Next_Train_API_Spec_v1.7.pdf
- *    - Resource URL: https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php
- *    - Optional param: lang = EN | TC (we use EN)
- *  - Data Dictionary v1.7: https://opendata.mtr.com.hk/doc/Next_Train_DataDictionary_v1.7.pdf
- *    - dest = 3-letter station code; DRL UP → SUN (Sunny Bay), DOWN → DIS (Disneyland Resort)
- */
-
-// --- Fixed configuration (DRL → DIS) ---
-const LINE = "DRL";   // Disneyland Resort Line
-const STA  = "DIS";   // Disneyland Resort Station
-const LANG = "EN";    // English-only, per requirement
-const API  = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php";
-
-// Commute window (local time)
-const COMMUTE_START = { h: 17, m: 30 };
-const COMMUTE_END   = { h: 19, m: 0 };
-
-// Elements
-const els = {
-  status:      document.getElementById("status"),
-  statusDot:   document.getElementById("statusDot"),
-  intervalWarn:document.getElementById("intervalWarn"),
-  up:          document.getElementById("up"),
-  auto:        document.getElementById("auto"),
-  reload:      document.getElementById("reload"),
+// Extracted texts for easier localization
+const texts = {
+  loading: "Loading…",
+  errorPrefix: "Error:",
+  headsUp: "Heads up: wait time is <strong>≥ 11 minutes</strong>. You may want to leave a bit earlier.",
+  toSunnyBay: "To Sunny Bay",
+  autoRefresh: "Auto‑refresh (17:30–19:00)",
+  reloadNow: "Reload now",
+  refreshing: "Refreshing…",
+  fixedTo: "Fixed to",
+  autoRefreshExplain: "Auto refresh ~25s within window.",
+  dataCopyright: "Data © MTR Corporation via DATA.GOV.HK.",
+  apiSpec: "API Spec",
+  dataDict: "Data Dictionary",
+  jsRequired: "This app requires JavaScript to display live train information."
 };
 
+const API_URL = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=DRL&sta=DIS&lang=EN";
+const COMMUTE_START = 17 * 60 + 30; // 17:30 in minutes
+const COMMUTE_END = 19 * 60; // 19:00 in minutes
+const REFRESH_INTERVAL = 25_000; // 25 seconds
+const MAX_RETRIES = 3;
+
+let auto = true;
 let timer = null;
+let loadErrorCount = 0;
 
-// Minimal name map (EN) for DRL destinations in UI only
-const STATION_NAME_EN = {
-  SUN: "Sunny Bay",
-  DIS: "Disneyland Resort",
-};
-const destLabel = (code) => STATION_NAME_EN[code] || code;
-
-// --- Helpers ---
-function withinCommuteWindow(d = new Date()) {
-  const mins  = d.getHours() * 60 + d.getMinutes();
-  const start = COMMUTE_START.h * 60 + COMMUTE_START.m;
-  const end   = COMMUTE_END.h   * 60 + COMMUTE_END.m;
-  return mins >= start && mins <= end;
-}
-function parseHKTime(s) { return new Date(s.replace(" ", "T")); } // "yyyy-MM-dd HH:mm:ss"
-function minutesDiff(a, b) {
-  const ta = a instanceof Date ? a.getTime() : a;
-  const tb = b instanceof Date ? b.getTime() : b;
-  return Math.max(0, Math.floor((tb - ta) / 60000)); // steadier UX
-}
-function setStatus(kind, html) {
-  els.status.className = `status status--${kind}`;
-  els.status.innerHTML = html;
-  els.statusDot.classList.remove("dot-delay", "dot-alert");
-  if (kind === "delay") els.statusDot.classList.add("dot-delay");
-  if (kind === "alert") els.statusDot.classList.add("dot-alert");
-}
-function computeIntervals(trains) {
-  if (!trains || trains.length < 2) return [];
-  const sorted = [...trains].sort((a, b) =>
-    (a.seq && b.seq) ? Number(a.seq) - Number(b.seq)
-                     : parseHKTime(a.time) - parseHKTime(b.time)
-  );
-  const gaps = [];
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = parseHKTime(sorted[i - 1].time);
-    const next = parseHKTime(sorted[i].time);
-    gaps.push(minutesDiff(prev, next));
-  }
-  return gaps;
-}
-function updateHeadwayWarning(trains) {
-  if (!withinCommuteWindow()) { els.intervalWarn.hidden = true; return; }
-  const gaps = computeIntervals(trains);
-  els.intervalWarn.hidden = !gaps.some(g => g >= 11);
+function nowInMinutes() {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
-// --- Render UP list (no platform/seq; show "Sunny Bay") ---
-function renderUP(trains, now) {
-  els.up.innerHTML = "";
-  if (!trains || trains.length === 0) {
+function isCommuteWindow() {
+  const now = nowInMinutes();
+  return now >= COMMUTE_START && now <= COMMUTE_END;
+}
+
+function parseHKTime(s) {
+  const d = new Date(s.replace(" ", "T"));
+  return isNaN(d) ? new Date() : d; // fallback to current time if invalid
+}
+
+function setStatus(type, msg) {
+  const status = document.getElementById("status");
+  status.className = `status status--${type}`;
+  status.innerHTML = msg;
+}
+
+function setStatusDot(type) {
+  const dot = document.getElementById("statusDot");
+  dot.className = `status-dot status-dot--${type}`;
+}
+
+function renderTrains(trains) {
+  const up = document.getElementById("up");
+  up.innerHTML = "";
+  for (const t of trains.slice(0, 4)) {
     const li = document.createElement("li");
-    li.className = "meta";
-    li.textContent = "— No trains listed —";
-    els.up.appendChild(li);
-    return;
+    li.innerHTML = `<strong>${t.time}</strong> (${t.dest}) ${t.platform ? `— Platform ${t.platform}` : ""}`;
+    up.appendChild(li);
   }
-  trains.slice(0, 4).forEach((t) => {
-    const etaMin  = minutesDiff(now, parseHKTime(t.time));
-    const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const li = document.createElement("li");
-    li.className = "train";
-    li.innerHTML = `
-      <div class="etaBox">
-        <div class="mins">${etaMin}<small>min</small></div>
-        <div class="time">ETA ${timeStr}</div>
-      </div>
-      <div class="info">
-        <div class="dest">${destLabel(t.dest)}</div>
-      </div>
-    `;
-    els.up.appendChild(li);
-  });
 }
 
-// --- API (Spec v1.7) ---
 async function fetchSchedule() {
-  const url = `${API}?line=${LINE}&sta=${STA}&lang=${LANG}`; // 'lang' per Spec v1.7
-  const res = await fetch(url, { mode: "cors" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const r = await fetch(API_URL);
+  if (!r.ok) throw new Error(`${texts.errorPrefix} ${r.status}`);
+  const json = await r.json();
+  if (!json.data?.DRL?.DIS?.UP) throw new Error(`${texts.errorPrefix} Malformed data`);
+  return json.data.DRL.DIS.UP;
 }
 
-// --- Load cycle ---
 async function loadOnce() {
+  setStatusDot("ok");
+  setStatus("ok", texts.loading);
+  document.getElementById("reload").disabled = true;
+  document.getElementById("reload").textContent = texts.refreshing;
   try {
-    setStatus("ok", "Loading…");
-    const data = await fetchSchedule();
+    const trains = await fetchSchedule();
+    loadErrorCount = 0;
+    // Process and display train info
+    const processedTrains = trains.map(t => ({
+      time: t.time ? parseHKTime(t.time).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "-",
+      dest: t.dest_en || "-",
+      platform: t.plat || ""
+    }));
+    renderTrains(processedTrains);
 
-    // Special arrangements / alert
-    if (data.status === 0) {
-      const link = data.url ? ` <a href="${data.url}" target="_blank" rel="noopener">More info</a>` : "";
-      setStatus("alert", `${data.message ?? "Service alert."}${link}`);
-      els.up.innerHTML = "";
-      els.intervalWarn.hidden = true;
-      return;
+    // Show warning if interval >= 11 min
+    const intervalWarn = document.getElementById("intervalWarn");
+    if (processedTrains.length >= 2) {
+      const t0 = parseHKTime(trains[0].time);
+      const t1 = parseHKTime(trains[1].time);
+      const diff = Math.round((t1 - t0) / 60000);
+      intervalWarn.hidden = !(diff >= 11);
+    } else {
+      intervalWarn.hidden = true;
     }
 
-    const key = `${LINE}-${STA}`;
-    const section = data?.data?.[key] ?? {};
-    const now     = data.curr_time ? parseHKTime(data.curr_time) : new Date();
-    const delayed = data.isdelay === "Y";
-    const sys     = data.sys_time  ?? "-";
-    const cur     = data.curr_time ?? "-";
-
-    setStatus(delayed ? "delay" : "ok",
-      `System: ${sys} • Server: ${cur}${delayed ? " • <strong>Delay reported</strong> ⚠️" : ""}`
-    );
-
-    renderUP(section.UP, now);
-    updateHeadwayWarning(section.UP);
+    setStatus("ok", "");
+    setStatusDot("ok");
   } catch (e) {
-    setStatus("alert", `Error: ${e.message}`);
+    setStatus("alert", `${texts.errorPrefix} ${e.message}`);
+    setStatusDot("alert");
+    loadErrorCount++;
+    if (loadErrorCount < MAX_RETRIES) {
+      setTimeout(loadOnce, 10000); // Retry after 10s
+    }
     console.error(e);
+  } finally {
+    document.getElementById("reload").disabled = false;
+    document.getElementById("reload").textContent = texts.reloadNow;
   }
 }
 
-// --- Auto-refresh (≈25s, within commute window) ---
-function startAuto() {
-  stopAuto();
-  const tick = async () => {
-    if (!els.auto.checked) return;
-    if (!withinCommuteWindow()) {
-      setStatus("ok", "Auto‑refresh paused (outside 17:30–19:00).");
-      els.intervalWarn.hidden = true;
-      return;
-    }
-    await loadOnce();
-  };
-  tick();
-  timer = setInterval(tick, 25_000);
+function setupAutoReload() {
+  if (timer) clearInterval(timer);
+  if (auto && isCommuteWindow()) {
+    timer = setInterval(loadOnce, REFRESH_INTERVAL);
+  }
 }
-function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
 
-els.auto.addEventListener("change", () => els.auto.checked ? startAuto() : stopAuto());
-els.reload.addEventListener("click", loadOnce);
-startAuto();
+window.addEventListener("DOMContentLoaded", () => {
+  // Set up texts for localization
+  document.querySelector("label.switch").lastChild.textContent = ` ${texts.autoRefresh}`;
+  document.getElementById("reload").textContent = texts.reloadNow;
+  document.getElementById("intervalWarn").innerHTML = texts.headsUp;
+
+  loadOnce();
+  setupAutoReload();
+
+  document.getElementById("auto").addEventListener("change", e => {
+    auto = e.target.checked;
+    setupAutoReload();
+    if (auto) loadOnce();
+  });
+
+  document.getElementById("reload").addEventListener("click", () => {
+    loadOnce();
+  });
+
+  // Optional: update auto-reload if time window changes (e.g., at 17:30 or 19:00)
+  setInterval(setupAutoReload, 60_000);
+});
