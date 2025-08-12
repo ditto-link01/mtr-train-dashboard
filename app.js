@@ -169,3 +169,42 @@ els.reload.addEventListener("click", loadOnce);
 // New behavior: fetch once on first load even if outside commute window
 if (!withinCommuteWindow()) { loadOnce(); }
 startAuto();
+
+
+// --- TCL Line: Sunny Bay departures towards Hong Kong Station ---
+async function fetchTCLSchedule() {
+  const url = 'https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=TCL&sta=SUN&lang=EN';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`TCL HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadTCL() {
+  try {
+    const data = await fetchTCLSchedule();
+    const section = data?.data?.['TCL-SUN'] ?? {};
+    const now = data.curr_time ? parseHKTime(data.curr_time) : new Date();
+    const list = document.getElementById('tcl');
+    list.innerHTML = '';
+    (section.UP || []).slice(0, 4).forEach((t) => {
+      const etaMin = minutesDiff(now, parseHKTime(t.time));
+      const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const li = document.createElement('li');
+      li.className = 'train';
+      li.innerHTML = `
+        <div class="etaBox">
+          <div class="mins">${etaMin}<small>min</small></div>
+          <div class="time">ETA ${timeStr}</div>
+        </div>
+        <div class="info">
+          <div class="dest">Hong Kong Station</div>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+  } catch (e) {
+    console.error('TCL Error:', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadTCL);
