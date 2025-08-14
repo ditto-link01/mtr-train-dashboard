@@ -87,20 +87,29 @@ function renderUP(trains, now) {
     els.up.appendChild(li);
     return;
   }
-  trains.slice(0, 4).forEach((t) => {
+  trains.slice(0, 4).forEach((t, idx) => {
     const etaMin  = minutesDiff(now, parseHKTime(t.time));
     const timeStr = parseHKTime(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const li = document.createElement("li");
-    li.className = "train";
-    li.innerHTML = `
-      <div class="etaBox">
-        <div class="mins">${etaMin}<small>min</small></div>
-        <div class="time">ETA ${timeStr}</div>
-      </div>
-      <div class="info">
-        <div class="dest">${destLabel(t.dest)}</div>
-      </div>
-    `;
+    if (idx === 0) {
+      li.className = "train";
+      li.innerHTML = `
+        <div class="etaBox">
+          <div class="mins">${etaMin}<small>min</small></div>
+          <div class="time">ETA ${timeStr}</div>
+        </div>
+        <div class="info">
+          <div class="dest">${destLabel(t.dest)}</div>
+        </div>
+      `;
+    } else {
+      li.className = "train train--compact";
+      li.innerHTML = `
+        <div class="compact-eta">${etaMin}<small>min</small></div>
+        <div class="compact-dest">${destLabel(t.dest)}</div>
+        <div class="compact-time">${timeStr}</div>
+      `;
+    }
     els.up.appendChild(li);
   });
 }
@@ -186,20 +195,29 @@ async function loadTCL() {
     const now = data.curr_time ? parseHKTime(data.curr_time) : new Date();
     const list = document.getElementById('tcl');
     list.innerHTML = '';
-    (section.UP || []).slice(0, 4).forEach((t) => {
+    (section.UP || []).slice(0, 4).forEach((t, idx) => {
       const etaMin = minutesDiff(now, parseHKTime(t.time));
       const timeStr = parseHKTime(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const li = document.createElement('li');
-      li.className = 'train';
-      li.innerHTML = `
-        <div class="etaBox">
-          <div class="mins">${etaMin}<small>min</small></div>
-          <div class="time">ETA ${timeStr}</div>
-        </div>
-        <div class="info">
-          <div class="dest">Hong Kong Station</div>
-        </div>
-      `;
+      if (idx === 0) {
+        li.className = 'train';
+        li.innerHTML = `
+          <div class="etaBox">
+            <div class="mins">${etaMin}<small>min</small></div>
+            <div class="time">ETA ${timeStr}</div>
+          </div>
+          <div class="info">
+            <div class="dest">Hong Kong Station</div>
+          </div>
+        `;
+      } else {
+        li.className = 'train train--compact';
+        li.innerHTML = `
+          <div class="compact-eta">${etaMin}<small>min</small></div>
+          <div class="compact-dest">Hong Kong Station</div>
+          <div class="compact-time">${timeStr}</div>
+        `;
+      }
       list.appendChild(li);
     });
   } catch (e) {

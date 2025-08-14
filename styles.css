@@ -113,7 +113,7 @@ main { padding: 1rem; max-width: 900px; margin-inline:auto; }
 ul { list-style:none; padding:0; margin:0; display:grid; gap:1rem; }
 
 /* Base row: roomier on all viewports */
-li.train {
+li.train:not(.train--compact) {
   display:grid;
   grid-template-columns: 140px 1fr;     /* base (desktop/tablet) */
   align-items:center;
@@ -155,9 +155,29 @@ li.train {
 .dest { font-weight:700; font-size:1.05rem; }
 .meta { color:var(--muted); font-size:.95rem; }
 
+/* Compact rows for subsequent trains */
+li.train--compact {
+  display:grid;
+  grid-template-columns: 60px 1fr 80px;
+  align-items:center;
+  gap:.5rem;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:.5rem .75rem;
+  font-size:.9rem;
+  background:var(--bg);
+}
+.train--compact .compact-eta { font-weight:700; text-align:center; }
+.train--compact .compact-dest { font-weight:600; }
+.train--compact .compact-time { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+@media (max-width: 640px) {
+  li.train--compact { grid-template-columns: 50px 1fr 70px; }
+}
+
 /* Wider ETA column on typical phones */
 @media (max-width: 640px) {
-  li.train {
+  li.train:not(.train--compact) {
     grid-template-columns: clamp(160px, 48vw, 220px) 1fr;  /* give ETA box more width */
     padding: 1rem 1.25rem;                                 /* extra row padding */
     gap: 1.1rem;
@@ -170,12 +190,12 @@ li.train {
 
 /* Even wider ETA column on narrow phones (~400px) */
 @media (max-width: 420px) {
-  li.train { grid-template-columns: clamp(178px, 56vw, 240px) 1fr; }
+  li.train:not(.train--compact) { grid-template-columns: clamp(178px, 56vw, 240px) 1fr; }
 }
 
 /* Ultra-small screens: stack to avoid squish */
 @media (max-width: 360px) {
-  li.train { grid-template-columns: 1fr; justify-items: stretch; }
+  li.train:not(.train--compact) { grid-template-columns: 1fr; justify-items: stretch; }
   .etaBox { width: 100%; max-width: 320px; margin: 0 auto .5rem; }
 }
 
