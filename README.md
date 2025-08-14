@@ -1,6 +1,6 @@
 # MTR Train Dashboard
 
-A simple, static dashboard for visualizing Hong Kong MTR train information. Built to be lightweight, fast to load, and easy to deploy as a single HTML page.
+A simple, static dashboard for visualizing Hong Kong MTR train information. Built to be lightweight, fast to load, and easy to deploy as a handful of static files.
 
 ---
 
@@ -16,7 +16,7 @@ A simple, static dashboard for visualizing Hong Kong MTR train information. Buil
 ## Features
 
 - **Minimal setup:** Open `index.html` directly in a browser—no build step required.
-- **Fast load:** Pure HTML with optional inline CSS and JavaScript keeps it snappy.
+- **Fast load:** Small static HTML, CSS, and JavaScript files keep it snappy.
 - **Mobile friendly:** Designed with responsive layout principles for phones and tablets.
 - **Easy deploy:** Works out of the box on GitHub Pages or any static server.
 
@@ -26,12 +26,15 @@ A simple, static dashboard for visualizing Hong Kong MTR train information. Buil
 
 ## Project structure
 
-- **Root files:**  
-  - `index.html` — Main dashboard UI and logic.  
-- **Optional additions:**  
-  - `assets/` — Images, icons, or static JSON if added later.  
-  - `styles/` — External CSS if you split styles out.  
-  - `scripts/` — External JS if you modularize logic.
+- **Root files:**
+  - `index.html` — Main dashboard UI.
+  - `styles.css` — Stylesheet for layout and visuals.
+  - `app.js` — JavaScript logic.
+  - `manifest.json` — Web app manifest.
+  - `icon-192.png` / `icon-512.png` — Application icons.
+
+- **Optional additions:**
+  - `assets/` — Images, extra icons, or static JSON if added later.
 
 > Keep the HTML semantic and accessible. Use roles and ARIA labels for controls and live regions.
 
