@@ -1,0 +1,8 @@
+{
+  "name": "mtr-train-dashboard",
+  "version": "1.0.0",
+  "description": "MTR train dashboard",
+  "scripts": {
+    "test": "node --check app.js"
+  }
+}

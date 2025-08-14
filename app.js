@@ -89,7 +89,7 @@ function renderUP(trains, now) {
   }
   trains.slice(0, 4).forEach((t) => {
     const etaMin  = minutesDiff(now, parseHKTime(t.time));
-    const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = parseHKTime(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const li = document.createElement("li");
     li.className = "train";
     li.innerHTML = `
@@ -174,7 +174,7 @@ startAuto();
 // --- TCL Line: Sunny Bay departures towards Hong Kong Station ---
 async function fetchTCLSchedule() {
   const url = 'https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=TCL&sta=SUN&lang=EN';
-  const res = await fetch(url);
+  const res = await fetch(url, { mode: "cors" });
   if (!res.ok) throw new Error(`TCL HTTP ${res.status}`);
   return res.json();
 }
@@ -188,7 +188,7 @@ async function loadTCL() {
     list.innerHTML = '';
     (section.UP || []).slice(0, 4).forEach((t) => {
       const etaMin = minutesDiff(now, parseHKTime(t.time));
-      const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = parseHKTime(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const li = document.createElement('li');
       li.className = 'train';
       li.innerHTML = `
