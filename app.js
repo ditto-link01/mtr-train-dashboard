@@ -155,14 +155,14 @@ function startAuto() {
     if (!withinCommuteWindow()) {
       setStatus("ok", "Auto‑refresh paused (outside 17:30–19:00).");
       els.intervalWarn.hidden = true;
-      return;
+    } else {
+      await loadOnce();
     }
-    await loadOnce();
+    if (els.auto.checked) timer = setTimeout(tick, 25_000);
   };
   tick();
-  timer = setInterval(tick, 25_000);
 }
-function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
+function stopAuto() { if (timer) { clearTimeout(timer); timer = null; } }
 
 els.auto.addEventListener("change", () => els.auto.checked ? startAuto() : stopAuto());
 els.reload.addEventListener("click", loadOnce);
